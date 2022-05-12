@@ -32,6 +32,7 @@ abstract contract ERC721Tradable is
   ERC721 _oldTokenContract = ERC721(0x4ef107a154CB7580c686C239Ed9F92597A42b961);
   address proxyRegistryAddress;
   uint256 private _currentTokenId = 1000;
+  uint256 private _maxTokenIdThatCanBeMigrated = 200; // FIXME set this for real
 
   mapping(uint256 => string) private _tokenURIs;
   mapping(string => bool) private _tokenURIUsed;
@@ -45,8 +46,6 @@ abstract contract ERC721Tradable is
     proxyRegistryAddress = _proxyRegistryAddress;
     _initializeEIP712(_name);
 
-    // FIXME hmm this seems like a bad idea.  maybe we should go with an allowlist approach for who can migrate their token?  this seems vulnerable to someone duplicating an existing old token and migrating it before the real owner does it.
-    // or maybe we keep this denylist approach but add a hardcoded max token id which is the snapshot of the current token id when this contract is deployed
     _doNotAllowToMigrate[162] = true;
     _doNotAllowToMigrate[163] = true;
     _doNotAllowToMigrate[164] = true;
@@ -87,6 +86,7 @@ abstract contract ERC721Tradable is
     string memory _oldTokenURI = _oldTokenContract.tokenURI(_tokenId);
     require(bytes(_oldTokenURI).length > 0, "Old Token URI cannot be empty");
     require(_doNotAllowToMigrate[_tokenId] == false, "Token cannot be migrated");
+    require(_tokenId < _maxTokenIdThatCanBeMigrated, "Token cannot be migrated because it past the snapshot");
 
     _oldTokenContract.safeTransferFrom(msg.sender, address(0), _tokenId);
     
